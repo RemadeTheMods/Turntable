@@ -1,2 +1,1 @@
-A music player app
-Small project by Rev
+A music player app - Small project by Rev
