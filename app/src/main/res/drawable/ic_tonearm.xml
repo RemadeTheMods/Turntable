@@ -1,0 +1,15 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="70dp" android:height="70dp"
+    android:viewportWidth="100" android:viewportHeight="100">
+    <!-- the arm -->
+    <path
+        android:strokeColor="#B8B4C2"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:pathData="M78,20 L28,64" />
+    <!-- pivot base -->
+    <path android:fillColor="#5A5666" android:pathData="M78,20m-11,0a11,11 0,1 1,22 0a11,11 0,1 1,-22 0" />
+    <path android:fillColor="#E8A33D" android:pathData="M78,20m-3.5,0a3.5,3.5 0,1 1,7 0a3.5,3.5 0,1 1,-7 0" />
+    <!-- headshell / stylus tip -->
+    <path android:fillColor="#E8A33D" android:pathData="M28,64m-8,0a8,8 0,1 1,16 0a8,8 0,1 1,-16 0" />
+</vector>

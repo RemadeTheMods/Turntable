@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingStart="12dp"
+    android:paddingEnd="4dp"
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp"
+    android:background="?attr/selectableItemBackground">
+
+    <TextView
+        android:id="@+id/trackNum"
+        android:layout_width="24dp"
+        android:layout_height="wrap_content"
+        android:textColor="@color/text_dim"
+        android:textSize="12sp"
+        android:gravity="center"
+        android:text="1" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="8dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/trackName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_primary"
+            android:textSize="14sp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:text="Track name" />
+
+        <TextView
+            android:id="@+id/trackFormat"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_dim"
+            android:textSize="10sp"
+            android:letterSpacing="0.05"
+            android:text="MP3" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/trackDuration"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/text_dim"
+        android:textSize="12sp"
+        android:fontFamily="monospace"
+        android:layout_marginEnd="4dp"
+        android:text="0:00" />
+
+    <ImageButton
+        android:id="@+id/hideBtn"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@drawable/bg_ctrl_button"
+        android:src="@drawable/ic_eye"
+        android:contentDescription="Hide track"
+        android:padding="10dp" />
+
+    <ImageButton
+        android:id="@+id/removeBtn"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@drawable/bg_ctrl_button"
+        android:src="@drawable/ic_close"
+        android:contentDescription="Remove track"
+        android:padding="12dp" />
+
+</LinearLayout>

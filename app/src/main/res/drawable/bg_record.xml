@@ -1,0 +1,13 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="150dp" android:height="150dp"
+    android:viewportWidth="150" android:viewportHeight="150">
+
+    <!-- base disc -->
+    <path android:fillColor="#100F15" android:pathData="M75,75m-75,0a75,75 0,1 1,150 0a75,75 0,1 1,-150 0"/>
+
+    <!-- grooves -->
+    <path android:strokeColor="#1B1922" android:strokeWidth="1" android:pathData="M75,75m-61,0a61,61 0,1 1,122 0a61,61 0,1 1,-122 0"/>
+    <path android:strokeColor="#1B1922" android:strokeWidth="1" android:pathData="M75,75m-51,0a51,51 0,1 1,102 0a51,51 0,1 1,-102 0"/>
+    <path android:strokeColor="#1B1922" android:strokeWidth="1" android:pathData="M75,75m-41,0a41,41 0,1 1,82 0a41,41 0,1 1,-82 0"/>
+
+</vector>
