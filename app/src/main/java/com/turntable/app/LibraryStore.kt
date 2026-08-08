@@ -18,6 +18,7 @@ object LibraryStore {
     private const val KEY_LAST_URI = "last_uri"
     private const val KEY_LAST_POSITION_MS = "last_position_ms"
     private const val KEY_SHUFFLE_ON = "shuffle_on"
+    private const val KEY_REPEAT_MODE = "repeat_mode"
 
     fun load(context: Context): MutableList<Track> {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -81,5 +82,16 @@ object LibraryStore {
     fun loadShuffleOn(context: Context): Boolean {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         return prefs.getBoolean(KEY_SHUFFLE_ON, false)
+    }
+
+    fun saveRepeatMode(context: Context, mode: RepeatMode) {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        prefs.edit().putString(KEY_REPEAT_MODE, mode.name).apply()
+    }
+
+    fun loadRepeatMode(context: Context): RepeatMode {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val raw = prefs.getString(KEY_REPEAT_MODE, null) ?: return RepeatMode.OFF
+        return try { RepeatMode.valueOf(raw) } catch (e: Exception) { RepeatMode.OFF }
     }
 }

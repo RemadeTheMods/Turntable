@@ -30,7 +30,10 @@ interface PlayerCallback {
     fun onProgress(positionMs: Int, durationMs: Int)
     fun onDurationReady(index: Int, durationMs: Long)
     fun onError(message: String)
+    fun onSleepTimerFinished()
 }
+
+enum class RepeatMode { OFF, ALL, ONE }
 
 class MusicService : Service() {
 
@@ -49,6 +52,10 @@ class MusicService : Service() {
     private var hasAudioFocus = false
     private var audioFocusRequest: AudioFocusRequest? = null
     private var isPrepared = false
+    private var repeatMode: RepeatMode = RepeatMode.OFF
+    private var sleepTimerRunnable: Runnable? = null
+    private var sleepTimerEndsAtMs: Long = 0L
+    private var tracksRemainingForStop: Int = -1 // -1 = inactive
 
     private val handler = Handler(Looper.getMainLooper())
     private var progressRunnable: Runnable? = null
@@ -110,6 +117,74 @@ class MusicService : Service() {
         LibraryStore.saveShuffleOn(applicationContext, on)
     }
 
+    fun getRepeatMode() = repeatMode
+
+    fun setRepeatMode(mode: RepeatMode) {
+        repeatMode = mode
+        LibraryStore.saveRepeatMode(applicationContext, mode)
+    }
+
+    /** Cycles Off -> Repeat All -> Repeat One -> Off, like most music apps' repeat button. */
+    fun cycleRepeatMode(): RepeatMode {
+        val next = when (repeatMode) {
+            RepeatMode.OFF -> RepeatMode.ALL
+            RepeatMode.ALL -> RepeatMode.ONE
+            RepeatMode.ONE -> RepeatMode.OFF
+        }
+        setRepeatMode(next)
+        return next
+    }
+
+    // ---------- sleep timer (time-based) ----------
+
+    fun startSleepTimer(minutes: Int) {
+        cancelSleepTimer()
+        cancelTrackCountTimer() // only one stop-condition active at a time
+        val delayMs = minutes * 60_000L
+        sleepTimerEndsAtMs = System.currentTimeMillis() + delayMs
+        sleepTimerRunnable = Runnable {
+            pause()
+            sleepTimerRunnable = null
+            sleepTimerEndsAtMs = 0L
+            callback?.onSleepTimerFinished()
+        }
+        handler.postDelayed(sleepTimerRunnable!!, delayMs)
+    }
+
+    fun cancelSleepTimer() {
+        sleepTimerRunnable?.let { handler.removeCallbacks(it) }
+        sleepTimerRunnable = null
+        sleepTimerEndsAtMs = 0L
+    }
+
+    fun isSleepTimerActive() = sleepTimerRunnable != null
+
+    /** Minutes remaining, rounded up, or 0 if no timer is running. */
+    fun getSleepTimerRemainingMinutes(): Int {
+        if (sleepTimerRunnable == null) return 0
+        val remainingMs = sleepTimerEndsAtMs - System.currentTimeMillis()
+        return if (remainingMs <= 0) 0 else ((remainingMs + 59_999) / 60_000).toInt()
+    }
+
+    // ---------- sleep timer (track-count based) ----------
+
+    /** Stops playback after [count] more track transitions happen (whether by
+     *  natural completion or manual skip). */
+    fun startTrackCountTimer(count: Int) {
+        cancelSleepTimer()
+        cancelTrackCountTimer()
+        tracksRemainingForStop = count.coerceAtLeast(1)
+    }
+
+    fun cancelTrackCountTimer() {
+        tracksRemainingForStop = -1
+    }
+
+    fun isTrackCountTimerActive() = tracksRemainingForStop > 0
+
+    /** Tracks remaining before it stops, or 0 if no track-count timer is running. */
+    fun getTracksRemainingForStop(): Int = if (tracksRemainingForStop > 0) tracksRemainingForStop else 0
+
     /** Builds a fresh shuffled order of every visible track, avoiding an immediate repeat. */
     private fun refillShuffleBag() {
         val visible = visibleIndices()
@@ -169,7 +244,14 @@ class MusicService : Service() {
                 // and rebuilding the player from within its own completion callback
                 // can leave the next MediaPlayer stuck mid-prepare on some devices.
                 isPrepared = false
-                handler.post { next() }
+                val finishedIndex = currentIndex
+                handler.post {
+                    if (repeatMode == RepeatMode.ONE) {
+                        loadAndPlay(finishedIndex, autoplay = true)
+                    } else {
+                        next(isAutoAdvance = true)
+                    }
+                }
             }
             mediaPlayer?.setOnErrorListener { _, _, _ ->
                 isPrepared = false
@@ -247,19 +329,60 @@ class MusicService : Service() {
         if (isPlaying()) pause() else play()
     }
 
-    fun next() {
+    fun next(isAutoAdvance: Boolean = false) {
+        if (tracksRemainingForStop == 0) {
+            tracksRemainingForStop = -1
+            stopAtEnd()
+            callback?.onSleepTimerFinished() // reuses the same "timer ended" notification
+            return
+        }
+        if (tracksRemainingForStop > 0) tracksRemainingForStop--
+
         val visible = visibleIndices()
         if (visible.isEmpty()) return
         val nextIndex: Int
         if (shuffleOn) {
             if (currentIndex != -1) shuffleHistory.add(currentIndex)
-            if (shuffleBag.isEmpty()) refillShuffleBag()
+            if (shuffleBag.isEmpty()) {
+                if (isAutoAdvance && repeatMode == RepeatMode.OFF) {
+                    // Played through the whole shuffled cycle once — stop rather
+                    // than silently starting a new shuffle round.
+                    stopAtEnd()
+                    return
+                }
+                refillShuffleBag()
+            }
             nextIndex = if (shuffleBag.isNotEmpty()) shuffleBag.removeAt(0) else visible.first()
         } else {
             val pos = visible.indexOf(currentIndex)
-            nextIndex = if (pos == -1) visible.first() else visible[(pos + 1) % visible.size]
+            if (pos == -1) {
+                nextIndex = visible.first()
+            } else {
+                val isLast = pos == visible.size - 1
+                if (isLast && isAutoAdvance && repeatMode == RepeatMode.OFF) {
+                    // Reached the end of the list naturally with repeat off —
+                    // stop instead of wrapping back to track one.
+                    stopAtEnd()
+                    return
+                }
+                nextIndex = visible[(pos + 1) % visible.size]
+            }
         }
         loadAndPlay(nextIndex)
+    }
+
+    /** Stops playback state cleanly at the end of the list without touching the
+     *  (already naturally-completed) MediaPlayer's start/pause, which could
+     *  throw depending on its exact native state at that moment. */
+    private fun stopAtEnd() {
+        isPrepared = false
+        stopProgressUpdates()
+        updatePlaybackState(PlaybackStateCompat.STATE_PAUSED)
+        callback?.onPlaybackStateChanged(false)
+        persistLastPlayback()
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        nm.notify(NOTIF_ID, buildNotification(false))
+        stopForeground(STOP_FOREGROUND_DETACH_COMPAT)
     }
 
     fun prev() {
@@ -377,15 +500,21 @@ class MusicService : Service() {
 
     private fun startProgressUpdates() {
         stopProgressUpdates()
-        var tickCount = 0
+        var lastSaveAt = System.currentTimeMillis()
         progressRunnable = object : Runnable {
             override fun run() {
                 callback?.onProgress(getCurrentPositionMs(), getDurationMs())
-                tickCount++
-                // Every ~5s (10 ticks * 500ms), save position — frequent enough to
-                // survive an unexpected kill, cheap enough not to matter for battery/IO.
-                if (tickCount % 10 == 0) persistLastPlayback()
-                handler.postDelayed(this, 500)
+                val now = System.currentTimeMillis()
+                // Save position roughly every 5s — frequent enough to survive an
+                // unexpected kill, cheap enough not to matter for battery/IO.
+                if (now - lastSaveAt >= 5000) {
+                    lastSaveAt = now
+                    persistLastPlayback()
+                }
+                // Tight interval so the highlighted lyric line changes essentially
+                // the instant the song crosses that timestamp, not up to half a
+                // second late.
+                handler.postDelayed(this, 120)
             }
         }
         handler.post(progressRunnable!!)
@@ -489,6 +618,7 @@ class MusicService : Service() {
         super.onDestroy()
         persistLastPlayback()
         stopProgressUpdates()
+        cancelSleepTimer()
         try { unregisterReceiver(becomingNoisyReceiver) } catch (e: Exception) { }
         abandonAudioFocus()
         mediaPlayer?.release()

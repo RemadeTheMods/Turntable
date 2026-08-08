@@ -44,4 +44,10 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
     implementation("androidx.media:media:1.7.0")
+    implementation("androidx.gridlayout:gridlayout:1.0.0")
+    // Used only to safely EMBED lyrics fetched from LRCLIB back into a file's
+    // own tags (ID3 for MP3, Vorbis comment for FLAC, atom for M4A). A proven
+    // library is used here rather than hand-written binary tag writers,
+    // since a bug in hand-rolled format code risks corrupting music files.
+    implementation("net.jthink:jaudiotagger:3.0.1")
 }
