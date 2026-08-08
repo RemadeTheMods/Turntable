@@ -1,4 +1,14 @@
 # Turntable — Native Android App
+## Descreption
+- A free music player for android. You can upload your local file and stream it anywhere, any time offline
+## Function
+
+- Shuffle mode
+- Loop mode
+- Lyrics mode (automaticcaly find lyrics from LRCLIB)
+- Sleep timer
+- Bluetooth 
+
 ## What's inside
 
 - `MainActivity.kt` — the screen: player UI, file picker, tracklist
