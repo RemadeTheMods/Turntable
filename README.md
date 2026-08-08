@@ -6,8 +6,8 @@
   notification, keeps running when you leave the app
 - `LibraryStore.kt` — saves your playlist between launches
 - `TrackAdapter.kt` — the scrollable track list
-- Same dark/amber "Turntable" look as the desktop and web versions
 
+# Install
 ## Step 1: Install Android Studio
 
 1. Go to **developer.android.com/studio** and download it for your OS (Windows/Mac/Linux)
