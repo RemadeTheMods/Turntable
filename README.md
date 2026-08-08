@@ -1,13 +1,4 @@
 # Turntable — Native Android App
-
-This is a real Android Studio project (Kotlin). It's a genuine native app — not a wrapped
-website — with a proper background playback service, lock-screen media controls, and a
-persistent notification, the same way Spotify or any other Android music app works.
-
-I can't compile the `.apk` for you from where I'm running (no access to Google's Android SDK
-servers), so you'll build it yourself using Android Studio, which is free and does this with a
-couple of clicks.
-
 ## What's inside
 
 - `MainActivity.kt` — the screen: player UI, file picker, tracklist
